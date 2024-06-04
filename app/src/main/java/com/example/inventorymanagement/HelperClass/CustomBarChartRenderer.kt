@@ -1,16 +1,11 @@
-package com.example.inventorymanagement.Fragments
+package com.example.inventorymanagement.HelperClass
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
-import com.github.mikephil.charting.charts.BarChart
-import com.github.mikephil.charting.components.YAxis
-import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarEntry
-import com.github.mikephil.charting.highlight.Highlight
 import com.github.mikephil.charting.interfaces.dataprovider.BarDataProvider
 import com.github.mikephil.charting.renderer.BarChartRenderer
-import com.github.mikephil.charting.utils.Transformer
 import com.github.mikephil.charting.utils.ViewPortHandler
 
 class CustomBarChartRenderer(
