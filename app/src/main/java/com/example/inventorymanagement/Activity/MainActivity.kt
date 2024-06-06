@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import com.example.inventorymanagement.Fragments.AlertFragment
+import com.example.inventorymanagement.Fragments.Authentication.SignUpFragment
 import com.example.inventorymanagement.Fragments.HistoryFragment
 import com.example.inventorymanagement.Fragments.HomeFragment
 import com.example.inventorymanagement.R
@@ -18,7 +19,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         if (savedInstanceState == null) {
-            loadFragment(HomeFragment())
+            loadFragment(SignUpFragment())
         }
 
         binding.btmNaviView.setOnItemSelectedListener { item ->

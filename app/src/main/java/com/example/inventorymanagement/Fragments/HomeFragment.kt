@@ -3,6 +3,7 @@ package com.example.inventorymanagement.Fragments
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,7 +12,13 @@ import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
+import com.example.inventorymanagement.HelperClass.AppConstants
+import com.example.inventorymanagement.HelperClass.Category
+import com.example.inventorymanagement.HelperClass.CategoryProducts
 import com.example.inventorymanagement.HelperClass.CustomBarChartRenderer
+import com.example.inventorymanagement.HelperClass.Sell
+import com.example.inventorymanagement.HelperClass.Stock
+import com.example.inventorymanagement.HelperClass.inventory
 import com.example.inventorymanagement.R
 import com.example.inventorymanagement.databinding.FragmentHomeBinding
 import com.github.mikephil.charting.charts.BarChart
@@ -24,8 +31,15 @@ import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.utils.ColorTemplate
 import com.github.mikephil.charting.charts.PieChart
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
+import com.google.firebase.storage.StorageReference
+import com.google.firebase.storage.storage
 
 class HomeFragment : Fragment() {
 
@@ -35,6 +49,9 @@ class HomeFragment : Fragment() {
     private lateinit var pie:PieChart
     private lateinit var database:FirebaseDatabase
     private lateinit var dataRef: DatabaseReference
+    private lateinit var firebaseAuth: FirebaseAuth
+    private lateinit var storageRef: StorageReference
+    private lateinit var key:String
 
     private lateinit var categoryImage: Uri
     private var isImageAdded=false
@@ -59,6 +76,9 @@ class HomeFragment : Fragment() {
 
         database=FirebaseDatabase.getInstance()
         dataRef=database.reference.child("Category")
+        firebaseAuth= FirebaseAuth.getInstance()
+        storageRef= Firebase.storage.getReference("Category")
+        key=firebaseAuth.currentUser!!.uid
 
 //        dataRef.child("$key/Fruits").setValue("30").addOnSuccessListener {
 //            Toast.makeText(requireContext(), "data successfully uploaded", Toast.LENGTH_SHORT).show()
@@ -72,9 +92,10 @@ class HomeFragment : Fragment() {
         setUpBarChart()
         setUpPieChart()
 
+        fetchCategorieDetails()
     }
     private fun showCategoryDialog() {
-        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.add_category, null)
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.category_layout, null)
         val edittxt = dialogView.findViewById<EditText>(R.id.edit)
         val insert_img = dialogView.findViewById<Button>(R.id.btn)
 
@@ -94,9 +115,21 @@ class HomeFragment : Fragment() {
             btn.setOnClickListener {
                 val category = edittxt.text.toString()
                 if(category.isNotEmpty()){
-                    // navigate to next fragment
-                    saveCategory(category)
+                    if(isImageAdded)storeCategoryInStorage(category)
+                    else{
+                        val categoryInfo=Category(
+                            name = category,
+                            image = null
+                        )
+                        storeCategoryInDatabase(categoryInfo)
+                    }
+                    val stockFragment = StockFragment()
+                    val bundle = Bundle().apply {
+                        putString("category", category)
+                    }
+                    stockFragment.arguments = bundle
                     dialog.dismiss()
+                    parentFragmentManager.beginTransaction().replace(R.id.fragment_container_view, stockFragment).commit()
                 }else{
                     edittxt.error = "Category Name Cannot Be Empty"
                 }
@@ -105,9 +138,30 @@ class HomeFragment : Fragment() {
         dialog.show()
     }
 
-    private fun saveCategory(category:String) {
-        val key=dataRef.push().key.toString()
-        dataRef.child(key).child(category)
+    private fun storeCategoryInStorage(category:String) {
+        storageRef.child("$key/$category.jpg").putFile(categoryImage).addOnSuccessListener {
+
+            storageRef.child("$key/$category.jpg").downloadUrl.addOnSuccessListener { uri ->
+
+                val categoryInfo=Category(
+                    name = category,
+                    image = uri.toString()
+                )
+                storeCategoryInDatabase(categoryInfo)
+
+            }.addOnFailureListener {
+                Log.d("HomeFragment","Error Failed to saved: ${it.message}")
+            }
+        }
+    }
+
+    private fun storeCategoryInDatabase(categoryInfo: Category) {
+
+        dataRef.child("$key/${categoryInfo.name}").setValue(categoryInfo).addOnSuccessListener {
+            Log.d("StockFragment","Data successfully saved")
+        }.addOnFailureListener {
+            Log.d("StockFragment","Error Failed to saved: ${it.message}")
+        }
     }
 
     private fun setUpPieChart(){
@@ -171,6 +225,68 @@ class HomeFragment : Fragment() {
             labels
         )
 
+    }
+    private fun fetchCategorieDetails(){
+        dataRef.child(key).addValueEventListener(object :ValueEventListener{
+            override fun onDataChange(snapshot: DataSnapshot) {
+//                for(category in snapshot.children){
+//                    Log.d("category whole array", category.toString())
+//                    val category = snapshot.getValue(CategoryProducts::class.java)
+////                    category?.inventory.let { Log.d("category inventory", it.toString()) }
+////                    category?.category?.name?.let { Log.d("category name", it) }
+////                    category?.category?.image?.let { Log.d("category image",it) }
+//                    category?.image?.let { Log.d("category image", it) }
+//                    category?.name?.let{ Log.d("category name", it) }
+//                    category?.inventory?.let { Log.d("category inventory", it.toString()) }
+//                    Log.d("category", category.toString())
+//                }
+//                Log.d("category4", snapshot.toString())
+//                for (categorySnapshot in snapshot.children) {
+////                    val category = categorySnapshot.getValue(CategoryProducts::class.java)
+////                    category?.let {
+////                        Log.d("category", "Name: ${it.name}, Image: ${it.image}")
+////                        val stock = it.getValue(Stock::class.java)
+////                        for(item in it.items){
+////                            Log.d("category", " Inventory: ${it.get}")
+////                        }
+////                    }
+////                    Log.d("category", categorySnapshot.toString())
+//                    val category = Category(
+//                        name = categorySnapshot.child("name").getValue(String::class.java) ?: "",
+//                        image = categorySnapshot.child("image").getValue(String::class.java) ?: ""
+//                    )
+//                    Log.d("category", category.toString())
+//                    val name = categorySnapshot.child("inventory").getValue(inventory::class.java) ?: ""
+//                    val image = categorySnapshot.child("sells").getValue(Sell::class.java) ?: ""
+//                    Log.d("category 0", name.toString())
+//                    Log.d("category 0", image.toString())
+//                    for (itemSnapshot in categorySnapshot.children) {
+////                        // Skip the "name" and "image" fields
+//                        Log.d("category 3", itemSnapshot.toString())
+//                        if (itemSnapshot.key.toString() == "name" || itemSnapshot.key.toString() == "image"){
+//                            val name = itemSnapshot.child("inventory").getValue(inventory::class.java) ?: ""
+//                            val image = itemSnapshot.child("sells").getValue(Sell::class.java) ?: ""
+//                            Log.d("category 2", name.toString())
+//                            Log.d("category 2", image.toString())
+//                        }
+//                        Log.d("category 1", itemSnapshot.key.toString())
+////
+////                        // Get the Stock object
+//                        //val stock = itemSnapshot.getValue(Stock::class.java)
+////                        Log.d("category", stock.toString())
+//                    }
+//                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.d("category", error.message)
+                AppConstants.showToast(requireContext(),"Error Fetching data: ${error.message}")
+            }
+        })
+    }
+    override fun onDestroy() {
+        super.onDestroy()
+        _binding = null
     }
 
 }
