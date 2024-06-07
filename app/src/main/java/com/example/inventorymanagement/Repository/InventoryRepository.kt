@@ -29,8 +29,10 @@ class InventoryRepository {
     private val _categories = MutableLiveData<List<Category>>()
     val categories: LiveData<List<Category>> get() = _categories
 
-    private val _stocks = MutableLiveData<List<Stock>>()
-    val stocks: LiveData<List<Stock>> get() = _stocks
+//    private val _stocks = MutableLiveData<List<Stock>>()
+//    val stocks: LiveData<List<Stock>> get() = _stocks
+    private val _stocks = MutableLiveData<Map<String, List<Stock>>>()
+    val stocks: LiveData<Map<String, List<Stock>>> get() = _stocks
 
     private val _inventoryHistory = MutableLiveData< List<inventory>>()
     val inventoryHistory: LiveData< List<inventory>> get() = _inventoryHistory
@@ -44,6 +46,19 @@ class InventoryRepository {
 
     private fun fetchCategories() {
         dataRef.child(key).addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                updateCategoriesList()
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // Handle database error\
+                Log.d("category", error.message)
+            }
+        })
+    }
+
+    private fun updateCategoriesList() {
+        dataRef.child(key).addListenerForSingleValueEvent(object :ValueEventListener{
             override fun onDataChange(snapshot: DataSnapshot) {
                 val categoriesList = mutableListOf<Category>()
                 for (categorySnapshot in snapshot.children) {
@@ -62,11 +77,11 @@ class InventoryRepository {
             }
 
             override fun onCancelled(error: DatabaseError) {
-                // Handle database error\
-                Log.d("category", error.message)
+                Log.d("category update", error.message)
             }
         })
     }
+
     fun fetchStock(category: String){
         val categoryKey=categoryKeyMap[category]
         if(categoryKey!=null){
@@ -80,19 +95,34 @@ class InventoryRepository {
         Log.d("InventoryRepository", categoryKey)
             dataRef.child("$key/$categoryKey").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
+                updateStocksList(categoryKey)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // Handle database error
+                Log.d("stocks", "${categoryKey}: ${error.message}")
+            }
+        })
+    }
+
+    private fun updateStocksList(categoryKey: String) {
+        dataRef.child("$key/$categoryKey").addListenerForSingleValueEvent(object : ValueEventListener{
+            override fun onDataChange(snapshot: DataSnapshot) {
                 val stocksList = mutableListOf<Stock>()
                 for (stockSnapshot in snapshot.children) {
                     if (stockSnapshot.key == "name" || stockSnapshot.key == "image") continue
                     val stock = stockSnapshot.getValue(Stock::class.java)
                     stock?.let { stocksList.add(it) }
                 }
-                _stocks.value = stocksList
+                //_stocks.value = stocksList
+                val currentStocks = _stocks.value?.toMutableMap() ?: mutableMapOf()
+                currentStocks[categoryKey] = stocksList
+                _stocks.value = currentStocks
                 Log.d("InventoryRepository stocksList", stocksList.toString())
             }
 
             override fun onCancelled(error: DatabaseError) {
-                // Handle database error
-                Log.d("category", "${categoryKey}: ${error.message}")
+                Log.d("stocks upadate", "${categoryKey}: ${error.message}")
             }
         })
     }

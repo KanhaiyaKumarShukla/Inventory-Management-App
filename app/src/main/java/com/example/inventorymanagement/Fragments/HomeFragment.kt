@@ -13,6 +13,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import com.example.inventorymanagement.Adapter.CategoryAdapter
+import com.example.inventorymanagement.Adapter.CategoryViewHolder
 import com.example.inventorymanagement.HelperClass.AppConstants
 import com.example.inventorymanagement.HelperClass.Category
 import com.example.inventorymanagement.HelperClass.CategoryProducts
@@ -20,6 +22,7 @@ import com.example.inventorymanagement.HelperClass.CustomBarChartRenderer
 import com.example.inventorymanagement.HelperClass.Stock
 import com.example.inventorymanagement.R
 import com.example.inventorymanagement.ViewModel.InventoryViewModel
+import com.example.inventorymanagement.databinding.CategoryItemBinding
 import com.example.inventorymanagement.databinding.FragmentHomeBinding
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.data.BarData
@@ -37,6 +40,8 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import com.firebase.ui.database.FirebaseRecyclerAdapter
+import com.firebase.ui.database.FirebaseRecyclerOptions
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.storage.StorageReference
 import com.google.firebase.storage.storage
@@ -92,6 +97,7 @@ class HomeFragment : Fragment() {
         }
         setUpBarChart()
         setUpPieChart()
+        loadCategory()
         inventoryViewModel.categories.observe(viewLifecycleOwner) { categories ->
             // Update your UI with the categories
             Log.d("HomeFragment1", categories.toString())
@@ -235,6 +241,31 @@ class HomeFragment : Fragment() {
             labels
         )
 
+    }
+    private lateinit var adapter: FirebaseRecyclerAdapter<Category, CategoryViewHolder>
+    private  fun loadCategory(){
+        val query = dataRef.child(key)
+        val option= FirebaseRecyclerOptions.Builder<Category>()
+            .setQuery(query, Category::class.java)
+            .build()
+        adapter = object : FirebaseRecyclerAdapter<Category, CategoryViewHolder>(option) {
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CategoryViewHolder {
+                val binding = CategoryItemBinding.inflate(LayoutInflater.from(parent.context),parent, false)
+                return CategoryViewHolder(binding, parent.context)
+            }
+
+            override fun onBindViewHolder(holder: CategoryViewHolder, position: Int, model: Category) {
+                val item = getItem(position)
+                Log.d("Home Adapter", item.toString())
+                holder.bind(item)
+            }
+        }
+        binding.categoryRecycler.adapter=adapter
+        adapter.startListening()
+    }
+    override fun onStop() {
+        super.onStop()
+        adapter.stopListening()
     }
     private fun fetchCategorieDetails(){
         dataRef.child(key).addValueEventListener(object :ValueEventListener{

@@ -12,7 +12,7 @@ class InventoryViewModel : ViewModel() {
     private val repository = InventoryRepository()
 
     val categories: LiveData<List<Category>> = repository.categories
-    val stocks: LiveData<List<Stock>> = repository.stocks
+    val stocks: LiveData<Map<String, List<Stock>>> = repository.stocks
     val inventoryHistory : LiveData<List<inventory>> = repository.inventoryHistory
 
     fun fetchStocks(categoryKey: String) {
