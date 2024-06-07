@@ -57,6 +57,10 @@ class InventoryRepository {
         })
     }
 
+    fun fetchCategoryKey( category: String) : String?{
+        return categoryKeyMap[category]
+    }
+
     private fun updateCategoriesList() {
         dataRef.child(key).addListenerForSingleValueEvent(object :ValueEventListener{
             override fun onDataChange(snapshot: DataSnapshot) {

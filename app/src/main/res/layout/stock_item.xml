@@ -6,6 +6,7 @@
     android:elevation="4dp"
     android:padding="16dp"
     app:cardCornerRadius="8dp"
+    android:id="@+id/stock_item_parent"
     app:cardUseCompatPadding="true">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -71,7 +72,7 @@
             app:layout_constraintStart_toEndOf="@id/picked_img" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/pickImageButton"
+            android:id="@+id/sellButton"
             style="@style/PickImageButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -81,19 +82,19 @@
             app:layout_constraintEnd_toEndOf="parent" />
 
         <ImageButton
-            android:id="@+id/edit_icon"
+            android:id="@+id/edit"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:layout_marginTop="8dp"
             android:layout_marginEnd="16dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            app:layout_constraintEnd_toStartOf="@+id/delete_icon"
+            app:layout_constraintEnd_toStartOf="@+id/delete"
             app:layout_constraintTop_toTopOf="parent"
             app:srcCompat="@drawable/baseline_edit_24"
             app:tint="@color/primaryDarkColor" />
 
         <ImageButton
-            android:id="@+id/delete_icon"
+            android:id="@+id/delete"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:layout_marginStart="8dp"

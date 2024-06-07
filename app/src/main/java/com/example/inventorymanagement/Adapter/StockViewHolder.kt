@@ -6,7 +6,9 @@ import com.bumptech.glide.Glide
 import com.example.inventorymanagement.HelperClass.Stock
 import com.example.inventorymanagement.databinding.StockItemBinding
 
-class StockViewHolder (private val binding: StockItemBinding, val  context : Context) : RecyclerView.ViewHolder(binding.root){
+class StockViewHolder ( val binding: StockItemBinding, val  context : Context) : RecyclerView.ViewHolder(binding.root){
+
+
     fun bind(stock : Stock){
         binding.stockName.text = stock.name
         binding.price.text = stock.price.toString()

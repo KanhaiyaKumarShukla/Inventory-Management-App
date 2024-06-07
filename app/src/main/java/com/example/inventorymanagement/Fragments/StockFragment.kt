@@ -11,14 +11,23 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.activityViewModels
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.bumptech.glide.Glide
+import com.example.inventorymanagement.Adapter.CategoryViewHolder
+import com.example.inventorymanagement.Adapter.StockViewHolder
+import com.example.inventorymanagement.HelperClass.Category
 import com.example.inventorymanagement.HelperClass.IdManager
 import com.example.inventorymanagement.HelperClass.Sell
 import com.example.inventorymanagement.HelperClass.Stock
 import com.example.inventorymanagement.HelperClass.inventory
+import com.example.inventorymanagement.R
 import com.example.inventorymanagement.ViewModel.InventoryViewModel
 import com.example.inventorymanagement.databinding.FragmentStockBinding
 import com.example.inventorymanagement.databinding.SellDialogBinding
 import com.example.inventorymanagement.databinding.StockDialogBinding
+import com.example.inventorymanagement.databinding.StockItemBinding
+import com.firebase.ui.database.FirebaseRecyclerAdapter
+import com.firebase.ui.database.FirebaseRecyclerOptions
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
@@ -31,7 +40,8 @@ class StockFragment : Fragment() {
 
     private var _binding : FragmentStockBinding ?=null
     private val binding get() = _binding!!
-    private lateinit var category:String
+    private  var categorykey :String? = null
+    private var category: String?=null
     private lateinit var database: FirebaseDatabase
     private lateinit var dataRef: DatabaseReference
     private lateinit var firebaseAuth: FirebaseAuth
@@ -54,7 +64,10 @@ class StockFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        category= arguments?.getString("category").toString()
+
+        category = arguments?.getString("category")
+
+        Log.d("StockFragment category", category.toString())
         database=FirebaseDatabase.getInstance()
         dataRef=database.reference.child("Category")
         firebaseAuth= FirebaseAuth.getInstance()
@@ -65,6 +78,38 @@ class StockFragment : Fragment() {
             showStockDialog()
         }
 
+        category?.let { loadStocks(it) }
+
+    }
+    private lateinit var adapter:FirebaseRecyclerAdapter<Stock, StockViewHolder>
+    private  fun loadStocks(categoryKey:String){
+        val query = dataRef.child("$key/categories/$category")
+        val option= FirebaseRecyclerOptions.Builder<Stock>()
+            .setQuery(query, Stock::class.java)
+            .build()
+        adapter = object : FirebaseRecyclerAdapter<Stock, StockViewHolder>(option) {
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): StockViewHolder {
+                val binding=StockItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+                return StockViewHolder(binding, parent.context)
+            }
+
+            override fun onBindViewHolder(holder: StockViewHolder, position: Int, model: Stock) {
+                val item=getItem(position)
+                holder.bind(item)
+                holder.binding.sellButton.setOnClickListener {
+                    onClickSell(model)
+                }
+                holder.binding.edit.setOnClickListener{
+                    onClickEdit(model)
+                }
+                holder.binding.delete.setOnClickListener{
+                    onClickDelete(model)
+                }
+            }
+        }
+        binding.stockRecycler.layoutManager = LinearLayoutManager(requireContext())
+        binding.stockRecycler.adapter=adapter
+        adapter.startListening()
     }
     private fun saveProductInDatabase(data:Stock){
 
@@ -85,7 +130,7 @@ class StockFragment : Fragment() {
     }
     private fun saveProductInRealTime(data: Stock){
 
-        val ref=dataRef.child("$key/$category").push()
+        val ref=dataRef.child("$key/categories/$category").push()
         val dataKey=ref.key
         data.id=dataKey!!
         ref.setValue(data).addOnSuccessListener {

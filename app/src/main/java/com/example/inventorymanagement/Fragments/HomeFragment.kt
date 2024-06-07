@@ -1,8 +1,10 @@
 package com.example.inventorymanagement.Fragments
 
+import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings.Global.putString
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -13,6 +15,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.bumptech.glide.Glide
 import com.example.inventorymanagement.Adapter.CategoryAdapter
 import com.example.inventorymanagement.Adapter.CategoryViewHolder
 import com.example.inventorymanagement.HelperClass.AppConstants
@@ -60,6 +64,7 @@ class HomeFragment : Fragment() {
     private val inventoryViewModel: InventoryViewModel by activityViewModels()
     private lateinit var categoryImage: Uri
     private var isImageAdded=false
+    private var stockFragment=StockFragment()
 
     val getContent = registerForActivityResult(ActivityResultContracts.GetContent()){uri->
 
@@ -139,13 +144,11 @@ class HomeFragment : Fragment() {
                         )
                         storeCategoryInDatabase(categoryInfo)
                     }
-                    val stockFragment = StockFragment()
-                    val bundle = Bundle().apply {
-                        putString("category", category)
-                    }
-                    stockFragment.arguments = bundle
+                    sendArg(category)
                     dialog.dismiss()
-                    parentFragmentManager.beginTransaction().replace(R.id.fragment_container_view, stockFragment).commit()
+                    parentFragmentManager.beginTransaction().replace(R.id.fragment_container_view, stockFragment)
+                        .addToBackStack("home fragment")
+                        .commit()
                 }else{
                     edittxt.error = "Category Name Cannot Be Empty"
                 }
@@ -250,16 +253,28 @@ class HomeFragment : Fragment() {
             .build()
         adapter = object : FirebaseRecyclerAdapter<Category, CategoryViewHolder>(option) {
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CategoryViewHolder {
-                val binding = CategoryItemBinding.inflate(LayoutInflater.from(parent.context),parent, false)
-                return CategoryViewHolder(binding, parent.context)
+                val view=LayoutInflater.from(parent.context).inflate(R.layout.category_item, parent, false)
+                return CategoryViewHolder(view)
             }
 
             override fun onBindViewHolder(holder: CategoryViewHolder, position: Int, model: Category) {
-                val item = getItem(position)
-                Log.d("Home Adapter", item.toString())
-                holder.bind(item)
+                holder.categoryView.text=model.name
+                Glide.with(holder.categoryImage.context)
+                    .load(model.image)
+                    .into(holder.categoryImage)
+                holder.view.setOnClickListener {
+                       val categoryKey = inventoryViewModel.fetchCategoryKey(model.name)
+
+                       sendArg(categoryKey)
+
+                       parentFragmentManager.beginTransaction().replace(R.id.fragment_container_view,stockFragment)
+                           .addToBackStack("homefragment")
+                           .commit()
+                }
+
             }
         }
+        binding.categoryRecycler.layoutManager = LinearLayoutManager(requireContext())
         binding.categoryRecycler.adapter=adapter
         adapter.startListening()
     }
@@ -267,45 +282,58 @@ class HomeFragment : Fragment() {
         super.onStop()
         adapter.stopListening()
     }
-    private fun fetchCategorieDetails(){
-        dataRef.child(key).addValueEventListener(object :ValueEventListener{
-            override fun onDataChange(snapshot: DataSnapshot) {
+//    private fun fetchCategorieDetails(){
+//        dataRef.child(key).addValueEventListener(object :ValueEventListener{
+//            override fun onDataChange(snapshot: DataSnapshot) {
+//
+//                if(snapshot.exists()){
+//                    for(categorySnapshot in snapshot.children){
+//                        Log.d("category key", categorySnapshot.key.toString())
+//                        val category = categorySnapshot.getValue(CategoryProducts::class.java)
+//                        category?.let {
+//                             Log.d("category", "Name: ${it.name}, Image: ${it.image}")
+//                        }
+//                        if (category != null) {
+//                            dataRef.child("$key/${categorySnapshot.key}").addValueEventListener(object: ValueEventListener{
+//                                override fun onDataChange(snapshotChild: DataSnapshot) {
+//                                    for (itemSnapshot in snapshotChild.children) {
+//                                        if (itemSnapshot.key == "name" || itemSnapshot.key == "image") continue
+//
+//                                        val stock = itemSnapshot.getValue(Stock::class.java)
+//                                        if (stock != null) {
+//                                            Log.d("category", "${category.name}, Name: ${stock.name}, Quantity: ${stock.quantity}, Price: ${stock.price}, Image: ${stock.image}")
+//                                        }
+//                                    }
+//                                }
+//
+//                                override fun onCancelled(error: DatabaseError) {
+//                                    Log.d("category", "${category.name}: ${error.message}")
+//                                }
+//                            })
+//                        }
+//                    }
+//                }
+//            }
+//
+//            override fun onCancelled(error: DatabaseError) {
+//                Log.d("category", error.message)
+//                AppConstants.showToast(requireContext(),"Error Fetching data: ${error.message}")
+//            }
+//        })
+//    }
 
-                if(snapshot.exists()){
-                    for(categorySnapshot in snapshot.children){
-                        Log.d("category key", categorySnapshot.key.toString())
-                        val category = categorySnapshot.getValue(CategoryProducts::class.java)
-                        category?.let {
-                             Log.d("category", "Name: ${it.name}, Image: ${it.image}")
-                        }
-                        if (category != null) {
-                            dataRef.child("$key/${categorySnapshot.key}").addValueEventListener(object: ValueEventListener{
-                                override fun onDataChange(snapshotChild: DataSnapshot) {
-                                    for (itemSnapshot in snapshotChild.children) {
-                                        if (itemSnapshot.key == "name" || itemSnapshot.key == "image") continue
+    fun sendArg(name : String?) {
+        if (name != null) {
 
-                                        val stock = itemSnapshot.getValue(Stock::class.java)
-                                        if (stock != null) {
-                                            Log.d("category", "${category.name}, Name: ${stock.name}, Quantity: ${stock.quantity}, Price: ${stock.price}, Image: ${stock.image}")
-                                        }
-                                    }
-                                }
 
-                                override fun onCancelled(error: DatabaseError) {
-                                    Log.d("category", "${category.name}: ${error.message}")
-                                }
-                            })
-                        }
-                    }
-                }
+            val bundle = Bundle().apply {
+                putString("category", name)
             }
-
-            override fun onCancelled(error: DatabaseError) {
-                Log.d("category", error.message)
-                AppConstants.showToast(requireContext(),"Error Fetching data: ${error.message}")
-            }
-        })
+            stockFragment.arguments = bundle
+        }
     }
+
+
     override fun onDestroy() {
         super.onDestroy()
         _binding = null

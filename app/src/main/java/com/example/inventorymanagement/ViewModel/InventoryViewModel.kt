@@ -34,4 +34,7 @@ class InventoryViewModel : ViewModel() {
     fun deleteStocks(category: String, stocksId:String) {
         repository.deleteStocks(category, stocksId)
     }
+    fun fetchCategoryKey(category: String) : String?{
+        return repository.fetchCategoryKey(category)
+    }
 }
