@@ -5,6 +5,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import com.example.inventorymanagement.HelperClass.Category
 import com.example.inventorymanagement.HelperClass.Stock
+import com.example.inventorymanagement.HelperClass.inventory
 import com.example.inventorymanagement.Repository.InventoryRepository
 
 class InventoryViewModel : ViewModel() {
@@ -12,6 +13,7 @@ class InventoryViewModel : ViewModel() {
 
     val categories: LiveData<List<Category>> = repository.categories
     val stocks: LiveData<List<Stock>> = repository.stocks
+    val inventoryHistory : LiveData<List<inventory>> = repository.inventoryHistory
 
     fun fetchStocks(categoryKey: String) {
         repository.fetchStock(categoryKey)
@@ -22,5 +24,14 @@ class InventoryViewModel : ViewModel() {
     }
     fun saveProductInRealTime(data: Stock, category: String){
         repository.saveProductInRealTime(data, category)
+    }
+    fun addInventoryTransectionHistory(inventory: inventory){
+        repository.addInventoryTransectionHistory(inventory)
+    }
+    fun deleteCategory(category: String) {
+        repository.deleteCategory(category)
+    }
+    fun deleteStocks(category: String, stocksId:String) {
+        repository.deleteStocks(category, stocksId)
     }
 }

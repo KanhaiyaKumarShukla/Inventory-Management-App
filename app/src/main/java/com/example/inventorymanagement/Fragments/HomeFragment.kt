@@ -17,9 +17,7 @@ import com.example.inventorymanagement.HelperClass.AppConstants
 import com.example.inventorymanagement.HelperClass.Category
 import com.example.inventorymanagement.HelperClass.CategoryProducts
 import com.example.inventorymanagement.HelperClass.CustomBarChartRenderer
-import com.example.inventorymanagement.HelperClass.Sell
 import com.example.inventorymanagement.HelperClass.Stock
-import com.example.inventorymanagement.HelperClass.inventory
 import com.example.inventorymanagement.R
 import com.example.inventorymanagement.ViewModel.InventoryViewModel
 import com.example.inventorymanagement.databinding.FragmentHomeBinding
@@ -54,7 +52,7 @@ class HomeFragment : Fragment() {
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var storageRef: StorageReference
     private lateinit var key:String
-    private val categoryViewModel: InventoryViewModel by activityViewModels()
+    private val inventoryViewModel: InventoryViewModel by activityViewModels()
     private lateinit var categoryImage: Uri
     private var isImageAdded=false
 
@@ -94,12 +92,12 @@ class HomeFragment : Fragment() {
         }
         setUpBarChart()
         setUpPieChart()
-        categoryViewModel.categories.observe(viewLifecycleOwner) { categories ->
+        inventoryViewModel.categories.observe(viewLifecycleOwner) { categories ->
             // Update your UI with the categories
             Log.d("HomeFragment1", categories.toString())
         }
 
-        categoryViewModel.stocks.observe(viewLifecycleOwner) { stocks ->
+        inventoryViewModel.stocks.observe(viewLifecycleOwner) { stocks ->
             // Update your UI with the stocks
             Log.d("HomeFragment2", stocks.toString())
         }
@@ -257,7 +255,7 @@ class HomeFragment : Fragment() {
 
                                         val stock = itemSnapshot.getValue(Stock::class.java)
                                         if (stock != null) {
-                                            Log.d("category", "${category.name}: Stock ID: ${stock.stockId}, Name: ${stock.name}, Quantity: ${stock.inventory.quantity}, Price: ${stock.inventory.price}, Image: ${stock.image}")
+                                            Log.d("category", "${category.name}, Name: ${stock.name}, Quantity: ${stock.quantity}, Price: ${stock.price}, Image: ${stock.image}")
                                         }
                                     }
                                 }

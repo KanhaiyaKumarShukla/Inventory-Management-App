@@ -26,15 +26,15 @@ class StockAdapter : ListAdapter<Stock, StockAdapter.ViewHolder>(Diff()) {
     class ViewHolder(private val binding: StockItemBinding, val  context : Context) : RecyclerView.ViewHolder(binding.root){
         fun bind(stock : Stock){
            binding.stockName.text = stock.name
-            binding.price.text = stock.inventory.price.toString()
-            binding.quantity.text = stock.inventory.quantity.toString()
+            binding.price.text = stock.price.toString()
+            binding.quantity.text = stock.quantity.toString()
             Glide.with(context).load(stock.image).into(binding.pickedImg)
         }
     }
 
     class Diff : DiffUtil.ItemCallback<Stock>(){
         override fun areItemsTheSame(oldItem: Stock, newItem: Stock): Boolean {
-            return oldItem.id == newItem.id
+            return oldItem.name == newItem.name
         }
 
         override fun areContentsTheSame(oldItem: Stock, newItem: Stock): Boolean {
