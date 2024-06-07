@@ -56,4 +56,11 @@ dependencies {
     implementation ("androidx.fragment:fragment-ktx:1.7.1")
 
     implementation ("com.github.bumptech.glide:glide:4.16.0")
+
+    val lifecycle_version = "2.7.0"
+
+    // ViewModel
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version")
+    implementation ("androidx.lifecycle:lifecycle-common-java8:2.7.0")
 }

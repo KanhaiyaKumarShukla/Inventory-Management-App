@@ -81,6 +81,8 @@ class StockFragment : Fragment() {
         }
     }
     private fun saveProductInRealTime(data: Stock){
+
+        val stockId=dataRef.child("$key/$category").push().key
         dataRef.child("$key/$category").push().setValue(data).addOnSuccessListener {
 
             Log.d("StockFragment","Product is successfully added.")
@@ -123,7 +125,6 @@ class StockFragment : Fragment() {
                         price = sBinding.price.text.toString().toDoubleOrNull() ?: 0.0
                     )
                     val data= Stock(
-                        id = IdManager.getNextId(requireContext(), category),
                         name = sBinding.stockName.text.toString(),
                         inventory =inventory,
                         image = image_uri.toString()
@@ -152,7 +153,6 @@ class StockFragment : Fragment() {
                     price = sBinding.price.text.toString().toDoubleOrNull() ?: 0.0
                 )
                 val data= Stock(
-                    id = IdManager.getNextId(requireContext(), category),
                     name = sBinding.stockName.text.toString(),
                     inventory= inventory,
                     image = image_uri.toString()
@@ -202,7 +202,7 @@ class StockFragment : Fragment() {
                     } else {
                         val data = Sell(
                             name = sBinding.buyerName.text.toString(),
-                            quantity = sBinding.quantity.text.toString().toDoubleOrNull() ?: 0,
+                            quantity = sBinding.quantity.text.toString().toInt() ?: 0,
                             price = sBinding.price.text.toString().toDoubleOrNull() ?: 0.0,
                         )
                         val amount = (quantity.toDouble()) * (price.toDouble())

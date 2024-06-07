@@ -12,6 +12,7 @@ import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import com.example.inventorymanagement.HelperClass.AppConstants
 import com.example.inventorymanagement.HelperClass.Category
 import com.example.inventorymanagement.HelperClass.CategoryProducts
@@ -20,6 +21,7 @@ import com.example.inventorymanagement.HelperClass.Sell
 import com.example.inventorymanagement.HelperClass.Stock
 import com.example.inventorymanagement.HelperClass.inventory
 import com.example.inventorymanagement.R
+import com.example.inventorymanagement.ViewModel.InventoryViewModel
 import com.example.inventorymanagement.databinding.FragmentHomeBinding
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.data.BarData
@@ -52,9 +54,10 @@ class HomeFragment : Fragment() {
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var storageRef: StorageReference
     private lateinit var key:String
-
+    private val categoryViewModel: InventoryViewModel by activityViewModels()
     private lateinit var categoryImage: Uri
     private var isImageAdded=false
+
     val getContent = registerForActivityResult(ActivityResultContracts.GetContent()){uri->
 
         uri?.let {
@@ -91,8 +94,17 @@ class HomeFragment : Fragment() {
         }
         setUpBarChart()
         setUpPieChart()
+        categoryViewModel.categories.observe(viewLifecycleOwner) { categories ->
+            // Update your UI with the categories
+            Log.d("HomeFragment1", categories.toString())
+        }
 
-        fetchCategorieDetails()
+        categoryViewModel.stocks.observe(viewLifecycleOwner) { stocks ->
+            // Update your UI with the stocks
+            Log.d("HomeFragment2", stocks.toString())
+        }
+
+        //fetchCategorieDetails()
     }
     private fun showCategoryDialog() {
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.category_layout, null)
@@ -229,6 +241,49 @@ class HomeFragment : Fragment() {
     private fun fetchCategorieDetails(){
         dataRef.child(key).addValueEventListener(object :ValueEventListener{
             override fun onDataChange(snapshot: DataSnapshot) {
+
+                if(snapshot.exists()){
+                    for(categorySnapshot in snapshot.children){
+                        Log.d("category key", categorySnapshot.key.toString())
+                        val category = categorySnapshot.getValue(CategoryProducts::class.java)
+                        category?.let {
+                             Log.d("category", "Name: ${it.name}, Image: ${it.image}")
+                        }
+                        if (category != null) {
+                            dataRef.child("$key/${categorySnapshot.key}").addValueEventListener(object: ValueEventListener{
+                                override fun onDataChange(snapshotChild: DataSnapshot) {
+                                    for (itemSnapshot in snapshotChild.children) {
+                                        if (itemSnapshot.key == "name" || itemSnapshot.key == "image") continue
+
+                                        val stock = itemSnapshot.getValue(Stock::class.java)
+                                        if (stock != null) {
+                                            Log.d("category", "${category.name}: Stock ID: ${stock.stockId}, Name: ${stock.name}, Quantity: ${stock.inventory.quantity}, Price: ${stock.inventory.price}, Image: ${stock.image}")
+                                        }
+                                    }
+                                }
+
+                                override fun onCancelled(error: DatabaseError) {
+                                    Log.d("category", "${category.name}: ${error.message}")
+                                }
+                            })
+                        }
+                    }
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.d("category", error.message)
+                AppConstants.showToast(requireContext(),"Error Fetching data: ${error.message}")
+            }
+        })
+    }
+    override fun onDestroy() {
+        super.onDestroy()
+        _binding = null
+    }
+
+}
+/*
 //                for(category in snapshot.children){
 //                    Log.d("category whole array", category.toString())
 //                    val category = snapshot.getValue(CategoryProducts::class.java)
@@ -276,17 +331,4 @@ class HomeFragment : Fragment() {
 ////                        Log.d("category", stock.toString())
 //                    }
 //                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                Log.d("category", error.message)
-                AppConstants.showToast(requireContext(),"Error Fetching data: ${error.message}")
-            }
-        })
-    }
-    override fun onDestroy() {
-        super.onDestroy()
-        _binding = null
-    }
-
-}
+* */
