@@ -3,6 +3,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
+import android.util.Log
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.interfaces.dataprovider.BarDataProvider
 import com.github.mikephil.charting.renderer.BarChartRenderer
@@ -53,8 +54,10 @@ class CustomBarChartRenderer(
             }
 
             // get the buffer
-            val buffer = mBarBuffers[i]
+            val buffer = mBarBuffers[i] ?: break
+            Log.d("buffer", buffer.toString())
 
+            // Skip if buffer is null
             val phaseY = mAnimator.phaseY
 
             for (j in buffer.buffer.indices step 4) {

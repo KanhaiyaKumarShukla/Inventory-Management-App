@@ -1,10 +1,8 @@
 package com.example.inventorymanagement.Fragments
 
-import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
-import android.provider.Settings.Global.putString
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -17,16 +15,12 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
-import com.example.inventorymanagement.Adapter.CategoryAdapter
 import com.example.inventorymanagement.Adapter.CategoryViewHolder
-import com.example.inventorymanagement.HelperClass.AppConstants
 import com.example.inventorymanagement.HelperClass.Category
-import com.example.inventorymanagement.HelperClass.CategoryProducts
 import com.example.inventorymanagement.HelperClass.CustomBarChartRenderer
 import com.example.inventorymanagement.HelperClass.Stock
 import com.example.inventorymanagement.R
 import com.example.inventorymanagement.ViewModel.InventoryViewModel
-import com.example.inventorymanagement.databinding.CategoryItemBinding
 import com.example.inventorymanagement.databinding.FragmentHomeBinding
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.data.BarData
@@ -65,6 +59,8 @@ class HomeFragment : Fragment() {
     private lateinit var categoryImage: Uri
     private var isImageAdded=false
     private var stockFragment=StockFragment()
+    private var barEntries = mutableListOf<BarEntry>()
+    private var labels = mutableListOf<String>()
 
     val getContent = registerForActivityResult(ActivityResultContracts.GetContent()){uri->
 
@@ -91,31 +87,45 @@ class HomeFragment : Fragment() {
         storageRef= Firebase.storage.getReference("Category")
         key=firebaseAuth.currentUser!!.uid
 
-//        dataRef.child("$key/Fruits").setValue("30").addOnSuccessListener {
-//            Toast.makeText(requireContext(), "data successfully uploaded", Toast.LENGTH_SHORT).show()
-//
-//        }.addOnFailureListener{
-//            Toast.makeText(requireContext(), "data uploading Failed", Toast.LENGTH_SHORT).show()
-//        }
         binding.fab.setOnClickListener{
             showCategoryDialog()
         }
-        setUpBarChart()
         setUpPieChart()
         loadCategory()
-        inventoryViewModel.categories.observe(viewLifecycleOwner) { categories ->
-            // Update your UI with the categories
-            Log.d("HomeFragment1", categories.toString())
-        }
-
-        inventoryViewModel.stocks.observe(viewLifecycleOwner) { stocks ->
-            // Update your UI with the stocks
-            Log.d("HomeFragment2", stocks.toString())
-        }
-
-        //fetchCategorieDetails()
+        fetchStockForBarChart()
+//        inventoryViewModel.categories.observe(viewLifecycleOwner) { categories ->
+//            // Update your UI with the categories
+//            Log.d("HomeFragment1", categories.toString())
+//        }
+//
+//        inventoryViewModel.stocks.observe(viewLifecycleOwner) { stocks ->
+//            // Update your UI with the stocks
+//            Log.d("HomeFragment2", stocks.toString())
+//        }
     }
-    private fun showCategoryDialog() {
+    /*
+    private fun uploadDefaultImages(){
+
+        //showCategoryDialog()
+        if(isImageAdded){
+            storageRef.child("$key/defaultImage.jpg").putFile(categoryImage).addOnSuccessListener {
+
+                storageRef.child("$key/defaultImage.jpg").downloadUrl.addOnSuccessListener { uri ->
+
+                    dataRef.child("$key/defaultImage").push().setValue(uri.toString()).addOnSuccessListener {
+                        Log.d("StockFragment","Data successfully saved")
+                    }.addOnFailureListener {
+                        Log.d("StockFragment","Error Failed to saved: ${it.message}")
+                    }
+
+                }.addOnFailureListener {
+                    Log.d("HomeFragment","Error Failed to saved: ${it.message}")
+                }
+            }
+        }
+    }
+    */
+    private fun showCategoryDialog(){
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.category_layout, null)
         val edittxt = dialogView.findViewById<EditText>(R.id.edit)
         val insert_img = dialogView.findViewById<Button>(R.id.btn)
@@ -136,11 +146,14 @@ class HomeFragment : Fragment() {
             btn.setOnClickListener {
                 val category = edittxt.text.toString()
                 if(category.isNotEmpty()){
-                    if(isImageAdded)storeCategoryInStorage(category)
+                    if(isImageAdded){
+                        storeCategoryInStorage(category)
+
+                    }
                     else{
                         val categoryInfo=Category(
                             name = category,
-                            image = null
+                            image = inventoryViewModel.defaultImage
                         )
                         storeCategoryInDatabase(categoryInfo)
                     }
@@ -217,18 +230,62 @@ class HomeFragment : Fragment() {
 
         }
     }
+    private fun fetchStockForBarChart(){
+        Log.d("FetchStockForBarChart", "snapshot1")
+        dataRef.child("$key/categories").addValueEventListener(object: ValueEventListener{
+            override fun onDataChange(snapshot: DataSnapshot) {
+                Log.d("FetchStockForBarChart", "snapshot2")
+                if(snapshot.exists()){
+                    val newBarEntries = mutableListOf<BarEntry>()
+                    val newLabels = mutableListOf<String>()
+                    var index = 1f
+                    for(categorySnapshot in snapshot.children) {
+                        Log.d("FetchStockForBarChart parent", categorySnapshot.key.toString())
+                        for (dataSnapshot in categorySnapshot.children) {
+                            val stock = dataSnapshot.getValue(Stock::class.java)
+                            Log.d("FetchStockForBarChart child", dataSnapshot.key.toString())
+                            Log.d("FetchStockForBarChart stock",stock.toString())
+                            if (stock != null) {
+                                newBarEntries.add(BarEntry(index,stock.quantity.toFloat()))
+                                index += 1f
+                                newLabels.add(stock.name)
+                            }
+                        }
+                    }
+                    barEntries= (barEntries+newBarEntries).toSet().toMutableList()
+                    labels=(labels+newLabels).toSet().toMutableList()
+                    Log.d("barEntries",barEntries.toString())
+                    Log.d("labels", labels.toString())
+                    setUpBarChart()
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.d("HomeFragment","Error Failed to saved: ${error.message}")
+            }
+        })
+    }
     private fun setUpBarChart(){
-        bar=binding.barchart
-        val barEntries = listOf<BarEntry>(
-            BarEntry(0f, 70f), // Add text as the third parameter
-            BarEntry(1f, 30f),
-            BarEntry(2f, 100f),
-            BarEntry(3f, 60f)
-        )
+        if (!::bar.isInitialized) {
+            bar = binding.barchart
+        }
+        var wasEmpty=false
+        if(barEntries.isNullOrEmpty() || labels.isNullOrEmpty()) {
+            wasEmpty=true
+            barEntries = listOf<BarEntry>(
+                BarEntry(0f, 70f), // Add text as the third parameter
+                BarEntry(1f, 30f),
+                BarEntry(2f, 100f),
+                BarEntry(3f, 60f)
+            ).toMutableList()
+            labels = listOf("Text1", "Text2", "Text3", "Text4").toMutableList()
+        }
+        Log.d("setUpBarChart", barEntries.toString())
+        Log.d("setUpBarChart", labels.toString())
         val dataset=BarDataSet(barEntries, "Report")
         dataset.colors = ColorTemplate.MATERIAL_COLORS.toList()
         dataset.valueTextColor= Color.BLACK
-        dataset.valueTextSize=20f
+        dataset.valueTextSize=15f
 
         val barData=BarData(dataset)
 
@@ -236,13 +293,18 @@ class HomeFragment : Fragment() {
         bar.data=barData
         bar.description.text="Bar Report"
         bar.animateY(2000)
-        val labels = listOf("Text1", "Text2", "Text3", "Text4")
-        bar.renderer = CustomBarChartRenderer(
-            bar,
-            bar.animator,
-            bar.viewPortHandler,
-            labels
-        )
+//        bar.renderer = CustomBarChartRenderer(
+//                bar,
+//                bar.animator,
+//                bar.viewPortHandler,
+//                labels
+//        )
+
+        if(wasEmpty){
+            barEntries= mutableListOf()
+            labels= mutableListOf()
+        }
+
 
     }
     private lateinit var adapter: FirebaseRecyclerAdapter<Category, CategoryViewHolder>
@@ -282,6 +344,7 @@ class HomeFragment : Fragment() {
         super.onStop()
         adapter.stopListening()
     }
+    /*
 //    private fun fetchCategorieDetails(){
 //        dataRef.child(key).addValueEventListener(object :ValueEventListener{
 //            override fun onDataChange(snapshot: DataSnapshot) {
@@ -321,6 +384,8 @@ class HomeFragment : Fragment() {
 //            }
 //        })
 //    }
+
+     */
 
     fun sendArg(name : String?) {
         if (name != null) {
@@ -388,4 +453,4 @@ class HomeFragment : Fragment() {
 ////                        Log.d("category", stock.toString())
 //                    }
 //                }
-* */
+*/

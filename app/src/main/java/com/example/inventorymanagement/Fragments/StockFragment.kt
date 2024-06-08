@@ -77,6 +77,7 @@ class StockFragment : Fragment() {
         binding.addStockFab.setOnClickListener{
             showStockDialog()
         }
+        Log.d("default repo stockFragment", inventoryViewModel.defaultImage.toString())
 
         category?.let { loadStocks(it) }
 
@@ -135,7 +136,7 @@ class StockFragment : Fragment() {
         data.id=dataKey!!
         ref.setValue(data).addOnSuccessListener {
 
-            Log.d("StockFragment","Product is successfully added.")
+            Log.d("StockFragment","Product is successfully added:$data")
         }.addOnFailureListener {
             Log.d("StockFragment","Product is Failed to add : ${it.message}")
         }
@@ -176,15 +177,20 @@ class StockFragment : Fragment() {
                     val inventory=inventory(
                         quantity=quantity,
                         price = price,
-                        stockName = name
+                        stockName = name,
+                        image = image_uri.toString()
                     )
+                    if(image_uri.toString()=="null")inventory.image=inventoryViewModel.defaultImage
                     val data= Stock(
                         name= name,
                         image = image_uri.toString(),
                         quantity=quantity,
                         price=price
                     )
-
+                    if(image_uri.toString()=="null")data.image=inventoryViewModel.defaultImage
+                    Log.d("StockFragment data", data.toString())
+                    Log.d("StockFragment inventory", inventoryViewModel.defaultImage.toString())
+                    Log.d("StockFragment image_uri", image_uri.toString())
                     saveProductInDatabase(data)
                     inventoryViewModel.addInventoryTransectionHistory(inventory)
 
@@ -208,10 +214,12 @@ class StockFragment : Fragment() {
                 val quantity = sBinding.quantity.text.toString().toIntOrNull() ?: 0
                 val price = sBinding.price.text.toString().toDoubleOrNull() ?: 0.0
                 val name = sBinding.stockName.text.toString()
+                val image=null
                 val inventory=inventory(
                     quantity=quantity,
                     price = price,
-                    stockName = name
+                    stockName = name,
+                    image = image_uri.toString()
                 )
                 val data= Stock(
                     name= name,
@@ -220,11 +228,9 @@ class StockFragment : Fragment() {
                     price=price
                 )
 
-                saveProductInDatabase(data)
+                inventoryViewModel.updateStock(name,image,quantity,price,category!!,stock.id!!)
                 inventoryViewModel.addInventoryTransectionHistory(inventory)
-          // add delete this data from daotabase and then add to database
-
-                saveProductInDatabase(data)
+              // add delete this data from daotabase and then add to database
                 dialog.dismiss()
             }
             .setNegativeButton("Cancel"){dialog, _ ->
@@ -234,6 +240,7 @@ class StockFragment : Fragment() {
 
     fun onClickDelete(stock : Stock){
         // delete this stock from database
+        inventoryViewModel.deleteStocks(category!!, stock.id!!)
     }
 
     fun onClickSell(stock : Stock){
@@ -265,16 +272,18 @@ class StockFragment : Fragment() {
                     if (quantity.toInt() > stock.quantity.toInt()) {
                         sBinding.quantity.error = "Quantity is Limited"
                     } else {
+                        val quantity = sBinding.quantity.text.toString().toIntOrNull() ?: 0
+                        val price = sBinding.price.text.toString().toDoubleOrNull() ?: 0.0
+                        val buyersName = sBinding.buyerName.text.toString()
                         val data = inventory(
-                            buyersName = sBinding.buyerName.text.toString(),
-                            quantity = sBinding.quantity.text.toString().toInt() ?: 0,
-                            price = sBinding.price.text.toString().toDoubleOrNull() ?: 0.0,
-                            stockName =stock.name
+                            buyersName = buyersName,
+                            quantity = quantity,
+                            price = price,
+                            stockName =stock.name,
+                            image = stock.image
                         )
-                        val amount = (quantity.toDouble()) * (price.toDouble())
-                        sBinding.amount.text = amount.toString()
-                        sBinding.layoutAmount.visibility = View.VISIBLE
 
+                        inventoryViewModel.sellStock(quantity, price,category!!, stock.id!!)
                         // now add this sell to database
                         inventoryViewModel.addInventoryTransectionHistory(data)
 

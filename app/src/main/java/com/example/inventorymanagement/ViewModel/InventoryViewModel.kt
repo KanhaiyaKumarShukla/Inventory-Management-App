@@ -9,11 +9,13 @@ import com.example.inventorymanagement.HelperClass.inventory
 import com.example.inventorymanagement.Repository.InventoryRepository
 
 class InventoryViewModel : ViewModel() {
-    private val repository = InventoryRepository()
+    private val repository = InventoryRepository
 
     val categories: LiveData<List<Category>> = repository.categories
     val stocks: LiveData<Map<String, List<Stock>>> = repository.stocks
     val inventoryHistory : LiveData<List<inventory>> = repository.inventoryHistory
+
+    val defaultImage:String? =repository.defaultImage
 
     fun fetchStocks(categoryKey: String) {
         repository.fetchStock(categoryKey)
@@ -37,4 +39,21 @@ class InventoryViewModel : ViewModel() {
     fun fetchCategoryKey(category: String) : String?{
         return repository.fetchCategoryKey(category)
     }
+    fun sellStock(quantity: Int, price: Double,category: String, stockId: String){
+        return repository.sellStock(quantity,price,category, stockId)
+    }
+    fun updateStock(
+        name: String = "",
+        image: String? = null,
+        quantity: Int=0,
+        price: Double=0.0,
+        category: String,
+        stockId: String
+    ) {
+        return repository.updateStocks(name, image, quantity,price,category, stockId)
+    }
+    fun buyStock(quantity: Int, price: Double, category: String, stockId: String){
+        return repository.buyStock(quantity, price, category, stockId)
+    }
+
 }

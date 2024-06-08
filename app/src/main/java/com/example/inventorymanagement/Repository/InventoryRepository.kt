@@ -15,16 +15,18 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.getValue
 import com.google.firebase.storage.StorageReference
 import com.google.firebase.storage.storage
 
-class InventoryRepository {
+object InventoryRepository {
 
     private val database = FirebaseDatabase.getInstance()
     private val dataRef = database.reference.child("Category")
     private val firebaseAuth = FirebaseAuth.getInstance()
     private val key = firebaseAuth.currentUser!!.uid
     private val storageRef= Firebase.storage.getReference("Category")
+    var defaultImage :String?=null
 
     private val _categories = MutableLiveData<List<Category>>()
     val categories: LiveData<List<Category>> get() = _categories
@@ -42,6 +44,10 @@ class InventoryRepository {
     init {
         fetchCategories()
         fetchInventoryTransectionHistory()
+        fetchDefaultImage(){
+            Log.d("default repo ori", defaultImage.toString())
+        }
+        
     }
 
     private fun fetchCategories() {
@@ -96,8 +102,10 @@ class InventoryRepository {
     }
 
     private fun fetchStocksAtKey(categoryKey: String) {
+
         Log.d("InventoryRepository", categoryKey)
-            dataRef.child("$key/$categoryKey").addValueEventListener(object : ValueEventListener {
+        if(categoryKey.isEmpty())return
+        dataRef.child("$key/$categoryKey").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 updateStocksList(categoryKey)
             }
@@ -110,6 +118,8 @@ class InventoryRepository {
     }
 
     private fun updateStocksList(categoryKey: String) {
+        if(categoryKey.isEmpty() || categoryKey=="defaultImage")return
+        Log.d("categoryKey", categoryKey)
         dataRef.child("$key/$categoryKey").addListenerForSingleValueEvent(object : ValueEventListener{
             override fun onDataChange(snapshot: DataSnapshot) {
                 val stocksList = mutableListOf<Stock>()
@@ -132,7 +142,7 @@ class InventoryRepository {
     }
 
     fun saveProductInDatabase(data:Stock, category: String, image_uri:Uri?){
-
+        if(category.isEmpty() )return
         val fileReference = storageRef.child("$key/$category/${data.name}.jpg")
         if(image_uri!=null) {
             fileReference.putFile(image_uri).addOnSuccessListener {
@@ -149,6 +159,7 @@ class InventoryRepository {
         }
     }
     fun saveProductInRealTime(data: Stock, category: String){
+        if(category.isEmpty())return
         dataRef.child("$key/$category").push().setValue(data).addOnSuccessListener {
 
             Log.d("InventoryRepository","Product is successfully added.")
@@ -158,6 +169,7 @@ class InventoryRepository {
     }
     fun deleteCategory(category: String){
         val categoryKey=categoryKeyMap[category]
+        if(categoryKey.isNullOrEmpty())return
         dataRef.child("$key/$categoryKey").removeValue().addOnSuccessListener {
             Log.d("InventoryRepository", "Category successfully deleted.")
         }.addOnFailureListener { error ->
@@ -165,8 +177,9 @@ class InventoryRepository {
         }
     }
     fun deleteStocks(category: String, stocksId :String){
+        if(category.isEmpty() || stocksId.isEmpty())return
         val categoryKey=categoryKeyMap[category]
-        dataRef.child("$key/$categoryKey/$stocksId").removeValue().addOnSuccessListener {
+        dataRef.child("$key/categories/$categoryKey/$stocksId").removeValue().addOnSuccessListener {
             Log.d("InventoryRepository", "Stocks successfully deleted.")
         }.addOnFailureListener { error ->
             Log.d("InventoryRepository", "Failed to delete stocks: ${error.message}")
@@ -188,6 +201,32 @@ class InventoryRepository {
             Log.d("InventoryRepository","Inventory is Failed to add : ${it.message}")
         }
     }
+     private fun fetchDefaultImage(onComplete: ()-> Unit){
+        dataRef.child("$key/defaultImage").addListenerForSingleValueEvent(object :ValueEventListener{
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.exists()) {
+                    var dImage :String?=null
+                    for(image in snapshot.children){
+                        dImage=image.getValue(String::class.java)
+
+                        Log.d("defaultImage", dImage.toString())
+                        if(dImage!=null)defaultImage = dImage
+                        Log.d("defaultImage ori", defaultImage.toString())
+                    }
+
+                } else {
+                    Log.d("defaultImage", "No data found at $key/defaultImage")
+                }
+                Log.d("defaultImage", defaultImage.toString())
+                onComplete()
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.d("defaultImage", "Failed to fetch default image: ${error.message}")
+                onComplete()
+            }
+        })
+    }
     private fun fetchInventoryTransectionHistory(){
         dataRef.child("$key/inventory").addValueEventListener(object : ValueEventListener{
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -207,5 +246,64 @@ class InventoryRepository {
                 Log.d("InventoryRepository","fetchInventoryHistory is Failed : ${error.message}")
             }
         })
+    }
+    fun updateStocks(
+        name: String = "",
+        image: String? = null,
+        quantity: Int=0,
+        price: Double=0.0,
+        category: String,
+        stockId: String
+    ){
+        val updates = HashMap<String, Any>()
+        if(quantity!=0)updates["quantity"] = quantity
+        if(price!=0.0)updates["price"] = price
+        if(image!=null)updates["image"]=image
+        if(name.isNotEmpty())updates["name"]=name
+        if(category.isEmpty() || stockId.isEmpty())return
+        dataRef.child("$key/categories/$category/$stockId").updateChildren(updates)
+            .addOnSuccessListener {
+                Log.d("Repo updates", "Updates are successful")
+            }
+            .addOnFailureListener { e ->
+                // Handle any errors
+                Log.d("Repo updates", e.message.toString())
+            }
+    }
+    fun sellStock(quantity: Int, price: Double, category: String, stockId: String){
+        if(category.isEmpty() || stockId.isEmpty())return
+        dataRef.child("$key/categories/$category/$stockId").get().addOnSuccessListener { dataSnapshot ->
+
+            val stock=dataSnapshot.getValue(Stock::class.java)
+            val newQuantity=stock?.quantity!! - quantity
+            if(newQuantity==0)deleteStocks(category,stockId)
+            else updateStocks(stock.name,stock.image, newQuantity,stock.price,category,stock.id!!)
+
+        }.addOnFailureListener {
+            Log.w("InventoryRepository sell", "Error updating stock quantity", it)
+        }
+    }
+
+
+    fun buyStock(quantity: Int, price: Double, category: String, stockId: String){
+        if(category.isEmpty() || stockId.isEmpty())return
+        dataRef.child("$key/categories/$category/$stockId").get().addOnSuccessListener { dataSnapshot ->
+
+            val stock=dataSnapshot.getValue(Stock::class.java)
+            val newQuantity=stock?.quantity!! + quantity
+            val newPrice=calculatePriceAfterBuy(quantity, price, stock.quantity, stock.price)
+            if(newQuantity==0)deleteStocks(category,stockId)
+            else updateStocks(stock.name,stock.image, newQuantity,newPrice,category,stock.id!!)
+
+        }.addOnFailureListener {
+            Log.w("InventoryRepository sell", "Error updating stock quantity", it)
+        }
+    }
+
+    private fun calculatePriceAfterBuy(buyQuantity: Int, buyPrice: Double, oldQuantity: Int, oldPrice: Double): Double{
+
+        val totalPrice=(buyQuantity*buyPrice)+(oldPrice*oldQuantity)
+        val totalQuantity=buyQuantity+oldQuantity
+        return totalPrice/totalQuantity
     }
 }
