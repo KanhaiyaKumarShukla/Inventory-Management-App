@@ -30,7 +30,7 @@ Project Link: https://github.com/KanhaiyaKumarShukla/Inventory-Management-App
 
 
 
-## Screenshots
+# Screenshots
 
 
 
