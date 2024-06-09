@@ -1,4 +1,4 @@
-package com.example.inventorymanagement.HelperClass
+package com.example.inventorymanagement.helperClass
 
 data class Stock(
     var id :String? = null,

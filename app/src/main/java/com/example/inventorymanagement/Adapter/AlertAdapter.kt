@@ -7,12 +7,9 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.example.inventorymanagement.HelperClass.Category
-import com.example.inventorymanagement.HelperClass.Stock
+import com.example.inventorymanagement.helperClass.Stock
 import com.example.inventorymanagement.R
 import com.example.inventorymanagement.databinding.AlertItemBinding
-import com.example.inventorymanagement.databinding.CategoryItemBinding
-import com.example.inventorymanagement.databinding.StockItemBinding
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

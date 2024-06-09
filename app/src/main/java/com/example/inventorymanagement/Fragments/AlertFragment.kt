@@ -9,22 +9,14 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.inventorymanagement.Adapter.AlertAdapter
-import com.example.inventorymanagement.Adapter.CategoryViewHolder
-import com.example.inventorymanagement.Adapter.StockViewHolder
-import com.example.inventorymanagement.HelperClass.Category
-import com.example.inventorymanagement.HelperClass.Stock
-import com.example.inventorymanagement.R
+import com.example.inventorymanagement.helperClass.Stock
 import com.example.inventorymanagement.databinding.FragmentAlertBinding
-import com.firebase.ui.database.FirebaseRecyclerAdapter
-import com.github.mikephil.charting.data.BarEntry
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
-import com.google.firebase.storage.StorageReference
-import kotlinx.coroutines.newFixedThreadPoolContext
 
 
 class AlertFragment : Fragment() {

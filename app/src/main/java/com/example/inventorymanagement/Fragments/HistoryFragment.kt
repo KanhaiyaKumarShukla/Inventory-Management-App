@@ -7,13 +7,9 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.inventorymanagement.Adapter.InventoryViewHolder
-import com.example.inventorymanagement.Adapter.StockViewHolder
-import com.example.inventorymanagement.HelperClass.Stock
-import com.example.inventorymanagement.HelperClass.inventory
-import com.example.inventorymanagement.R
+import com.example.inventorymanagement.helperClass.inventory
 import com.example.inventorymanagement.databinding.FragmentHistoryBinding
 import com.example.inventorymanagement.databinding.InventoryItemBinding
-import com.example.inventorymanagement.databinding.StockItemBinding
 import com.firebase.ui.database.FirebaseRecyclerAdapter
 import com.firebase.ui.database.FirebaseRecyclerOptions
 import com.google.firebase.auth.FirebaseAuth

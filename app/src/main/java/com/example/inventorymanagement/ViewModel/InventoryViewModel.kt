@@ -3,30 +3,18 @@ package com.example.inventorymanagement.ViewModel
 import android.net.Uri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
-import com.example.inventorymanagement.HelperClass.Category
-import com.example.inventorymanagement.HelperClass.Stock
-import com.example.inventorymanagement.HelperClass.inventory
+import com.example.inventorymanagement.helperClass.Category
+import com.example.inventorymanagement.helperClass.Stock
+import com.example.inventorymanagement.helperClass.inventory
 import com.example.inventorymanagement.Repository.InventoryRepository
+import com.example.inventorymanagement.helperClass.profit_loss
 
 class InventoryViewModel : ViewModel() {
     private val repository = InventoryRepository
 
-    val categories: LiveData<List<Category>> = repository.categories
-    val stocks: LiveData<Map<String, List<Stock>>> = repository.stocks
-    val inventoryHistory : LiveData<List<inventory>> = repository.inventoryHistory
-
     val defaultImage:String? =repository.defaultImage
 
-    fun fetchStocks(categoryKey: String) {
-        repository.fetchStock(categoryKey)
-    }
 
-    fun saveProductInDatabase(data:Stock, category: String, image_uri: Uri?) {
-        repository.saveProductInDatabase(data, category, image_uri)
-    }
-    fun saveProductInRealTime(data: Stock, category: String){
-        repository.saveProductInRealTime(data, category)
-    }
     fun addInventoryTransectionHistory(inventory: inventory){
         repository.addInventoryTransectionHistory(inventory)
     }
@@ -55,6 +43,9 @@ class InventoryViewModel : ViewModel() {
 
     fun buyStock(quantity: Int, price: Double, category: String, stockId: String){
         return repository.buyStock(quantity, price, category, stockId)
+    }
+    fun addCostPriceSellingPrice(profitLoss: profit_loss){
+        return InventoryRepository.addCostPriceSellingPrice(profitLoss)
     }
 
 }

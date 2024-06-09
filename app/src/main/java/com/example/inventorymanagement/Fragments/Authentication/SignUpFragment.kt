@@ -6,12 +6,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.navigation.fragment.findNavController
 import com.example.inventorymanagement.Fragments.HomeFragment
-import com.example.inventorymanagement.Fragments.StockFragment
-import com.example.inventorymanagement.HelperClass.AppConstants
+import com.example.inventorymanagement.helperClass.AppConstants
 import com.example.inventorymanagement.R
-import com.example.inventorymanagement.databinding.FragmentSignInBinding
 import com.example.inventorymanagement.databinding.FragmentSignUpBinding
 import com.google.firebase.auth.FirebaseAuth
 

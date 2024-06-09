@@ -5,11 +5,9 @@ import android.view.View
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.example.inventorymanagement.HelperClass.Stock
-import com.example.inventorymanagement.HelperClass.inventory
+import com.example.inventorymanagement.helperClass.inventory
 import com.example.inventorymanagement.R
 import com.example.inventorymanagement.databinding.InventoryItemBinding
-import com.example.inventorymanagement.databinding.StockItemBinding
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

@@ -1,12 +1,10 @@
-package com.example.inventorymanagement.HelperClass
+package com.example.inventorymanagement.helperClass
 
 import android.content.Context
 import android.util.Patterns
 import android.widget.Toast
-import com.example.inventorymanagement.Activity.MainActivity
 
 object AppConstants {
-    val TAG= MainActivity::class.simpleName
     fun verifyEmail(email:String):Pair<Boolean, String>{
         var result=Pair(true, "")
         if(email.isBlank()){

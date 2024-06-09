@@ -4,19 +4,18 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import com.example.inventorymanagement.HelperClass.AppConstants
-import com.example.inventorymanagement.HelperClass.Category
-import com.example.inventorymanagement.HelperClass.Sell
-import com.example.inventorymanagement.HelperClass.Stock
-import com.example.inventorymanagement.HelperClass.inventory
+import com.example.inventorymanagement.helperClass.Category
+import com.example.inventorymanagement.helperClass.Stock
+import com.example.inventorymanagement.helperClass.inventory
+import com.example.inventorymanagement.helperClass.profit_loss
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseException
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.getValue
-import com.google.firebase.storage.StorageReference
 import com.google.firebase.storage.storage
 
 object InventoryRepository {
@@ -125,8 +124,16 @@ object InventoryRepository {
                 val stocksList = mutableListOf<Stock>()
                 for (stockSnapshot in snapshot.children) {
                     if (stockSnapshot.key == "name" || stockSnapshot.key == "image") continue
-                    val stock = stockSnapshot.getValue(Stock::class.java)
-                    stock?.let { stocksList.add(it) }
+                    try {
+                        val stock = stockSnapshot.getValue(Stock::class.java)
+                        if (stock != null) {
+                            stocksList.add(stock)
+                        } else {
+                            Log.e("InventoryRepository", "Failed to convert snapshot to Stock: ${stockSnapshot.value}")
+                        }
+                    } catch (e: DatabaseException) {
+                        Log.e("InventoryRepository", "Error converting data to Stock: ${e.message}")
+                    }
                 }
                 //_stocks.value = stocksList
                 val currentStocks = _stocks.value?.toMutableMap() ?: mutableMapOf()
@@ -306,4 +313,52 @@ object InventoryRepository {
         val totalQuantity=buyQuantity+oldQuantity
         return totalPrice/totalQuantity
     }
+    fun addCostPriceSellingPrice(newProfitLoss:profit_loss){
+        Log.d("CostPriceSellingPrice", "function call")
+        dataRef.child("$key/profitLoss").addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(dataSnapshot: DataSnapshot) {
+                if(dataSnapshot.exists()) {
+                    val existingProfitLoss = dataSnapshot.getValue(profit_loss::class.java)
+                    val updatedSellingPrice =
+                        (existingProfitLoss?.sellingPrice ?: 0.0) + newProfitLoss.sellingPrice
+                    val updatedCostPrice =
+                        (existingProfitLoss?.costPrice ?: 0.0) + newProfitLoss.costPrice
+
+                    val updates = mapOf(
+                        "sellingPrice" to updatedSellingPrice,
+                        "costPrice" to updatedCostPrice
+                    )
+                    updateCostPriceSellingPrice(updates)
+                    Log.d("CostPriceSellingPrice", existingProfitLoss.toString())
+                    Log.d("CostPriceSellingPrice", dataSnapshot.key.toString())
+                }else{
+                    val updatedSellingPrice = newProfitLoss.sellingPrice
+                    val updatedCostPrice =newProfitLoss.costPrice
+
+                    val updates = mapOf(
+                        "sellingPrice" to updatedSellingPrice,
+                        "costPrice" to updatedCostPrice
+                    )
+                    updateCostPriceSellingPrice(updates)
+                    Log.d("CostPriceSellingPrice", "empty")
+                }
+
+
+            }
+
+            override fun onCancelled(databaseError: DatabaseError) {
+                Log.d("CostPriceSellingPrice cancelled", databaseError.message)
+            }
+        })
+    }
+
+    private fun updateCostPriceSellingPrice(updates: Map<String, Double>) {
+        dataRef.child("$key/profitLoss").updateChildren(updates).addOnSuccessListener {
+            Log.d("CostPriceSellingPrice update success", "successfully added")
+        }.addOnFailureListener {
+            Log.d("CostPriceSellingPrice update fail", it.message.toString())
+        }
+    }
+
+
 }

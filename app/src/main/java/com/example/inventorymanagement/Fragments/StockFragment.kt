@@ -12,21 +12,16 @@ import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.bumptech.glide.Glide
-import com.example.inventorymanagement.Adapter.CategoryViewHolder
 import com.example.inventorymanagement.Adapter.StockViewHolder
-import com.example.inventorymanagement.HelperClass.Category
-import com.example.inventorymanagement.HelperClass.IdManager
-import com.example.inventorymanagement.HelperClass.Sell
-import com.example.inventorymanagement.HelperClass.Stock
-import com.example.inventorymanagement.HelperClass.inventory
-import com.example.inventorymanagement.R
+import com.example.inventorymanagement.helperClass.Stock
+import com.example.inventorymanagement.helperClass.inventory
 import com.example.inventorymanagement.ViewModel.InventoryViewModel
 import com.example.inventorymanagement.databinding.BuyDialogBinding
 import com.example.inventorymanagement.databinding.FragmentStockBinding
 import com.example.inventorymanagement.databinding.SellDialogBinding
 import com.example.inventorymanagement.databinding.StockDialogBinding
 import com.example.inventorymanagement.databinding.StockItemBinding
+import com.example.inventorymanagement.helperClass.profit_loss
 import com.firebase.ui.database.FirebaseRecyclerAdapter
 import com.firebase.ui.database.FirebaseRecyclerOptions
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -82,12 +77,12 @@ class StockFragment : Fragment() {
             showStockDialog()
         }
         Log.d("default repo stockFragment", inventoryViewModel.defaultImage.toString())
-
-        category?.let { loadStocks(it) }
+//
+        category?.let { loadStocks() }
 
     }
     private lateinit var adapter:FirebaseRecyclerAdapter<Stock, StockViewHolder>
-    private  fun loadStocks(categoryKey:String){
+    private  fun loadStocks(){
         val query = dataRef.child("$key/categories/$category")
         val option= FirebaseRecyclerOptions.Builder<Stock>()
             .setQuery(query, Stock::class.java)
@@ -212,6 +207,12 @@ class StockFragment : Fragment() {
         }
         dialog.show()
     }
+    private fun calculatePrice(quantity:Int, price:Double):Double{
+        return quantity*price
+    }
+    private fun updateProfitLoss(sellingPrice:Double, costPrice:Double){
+        inventoryViewModel.addCostPriceSellingPrice(profit_loss(sellingPrice, costPrice))
+    }
 
     fun onClickEdit(stock: Stock){
         val sBinding = StockDialogBinding.inflate(layoutInflater)
@@ -232,12 +233,6 @@ class StockFragment : Fragment() {
                     price = price,
                     stockName = name,
                     image = image_uri.toString()
-                )
-                val data= Stock(
-                    name= name,
-                    image = image_uri.toString(),
-                    quantity=quantity,
-                    price=price
                 )
 
                 inventoryViewModel.updateStock(name,image,quantity,price,category!!,stock.id!!)
@@ -299,6 +294,7 @@ class StockFragment : Fragment() {
                         // now add this sell to database
                         inventoryViewModel.addInventoryTransectionHistory(data)
 
+                        updateProfitLoss(calculatePrice(quantity,price), calculatePrice(quantity, stock.price))
                         val newQuantity = stock.quantity.toInt() - quantity.toInt()
                         if(newQuantity == 0){
                             onClickDelete(stock) // use to delete stock
@@ -349,7 +345,7 @@ class StockFragment : Fragment() {
                         inventoryViewModel.buyStock(quantity, price,category!!, stock.id!!)
                         // now add this sell to database
                         inventoryViewModel.addInventoryTransectionHistory(data)
-
+                        updateProfitLoss(calculatePrice(quantity, stock.price), calculatePrice(quantity,price))
 
                         dialog.dismiss()
                 }

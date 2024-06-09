@@ -16,12 +16,13 @@ import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.inventorymanagement.Adapter.CategoryViewHolder
-import com.example.inventorymanagement.HelperClass.Category
-import com.example.inventorymanagement.HelperClass.CustomBarChartRenderer
-import com.example.inventorymanagement.HelperClass.Stock
+import com.example.inventorymanagement.helperClass.Category
+import com.example.inventorymanagement.helperClass.Stock
 import com.example.inventorymanagement.R
+import com.example.inventorymanagement.Repository.InventoryRepository
 import com.example.inventorymanagement.ViewModel.InventoryViewModel
 import com.example.inventorymanagement.databinding.FragmentHomeBinding
+import com.example.inventorymanagement.helperClass.profit_loss
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
@@ -41,8 +42,10 @@ import com.google.firebase.database.FirebaseDatabase
 import com.firebase.ui.database.FirebaseRecyclerAdapter
 import com.firebase.ui.database.FirebaseRecyclerOptions
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.getValue
 import com.google.firebase.storage.StorageReference
 import com.google.firebase.storage.storage
+import java.lang.Math.abs
 
 class HomeFragment : Fragment() {
 
@@ -90,9 +93,9 @@ class HomeFragment : Fragment() {
         binding.fab.setOnClickListener{
             showCategoryDialog()
         }
-        setUpPieChart()
         loadCategory()
         fetchStockForBarChart()
+        fetchDataForPieChart()
 //        inventoryViewModel.categories.observe(viewLifecycleOwner) { categories ->
 //            // Update your UI with the categories
 //            Log.d("HomeFragment1", categories.toString())
@@ -196,23 +199,17 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun setUpPieChart(){
-        val data=listOf<PieEntry>(
-            PieEntry(50f, "Sell"),
-            PieEntry(40f, "Buy"),
-            PieEntry(10f, "Profit")
-        )
+    private fun setUpPieChart(data:List<PieEntry>){
+//        val data=listOf<PieEntry>(
+//            PieEntry(50f, "Sell"),
+//            PieEntry(40f, "Buy"),
+//            PieEntry(10f, "Profit")
+//        )
         val dataSet=PieDataSet(data, "Profit-Loss Report")
         dataSet.colors=ColorTemplate.COLORFUL_COLORS.toList()
         dataSet.valueTextColor=Color.BLACK
         dataSet.valueTextSize=15f
         val pieData=PieData(dataSet)
-//        binding.piechart.apply{
-//            this.data=pieData
-//            this.description.isEnabled=true
-//            this.centerText="Profit / Loss"
-//            this.animate()
-//        }
         pie= binding.piechart
         pie.apply {
             this.data = pieData
@@ -229,6 +226,46 @@ class HomeFragment : Fragment() {
             this.setEntryLabelTextSize(12f)
 
         }
+    }
+    private fun fetchDataForPieChart(){
+        dataRef.child("$key/profitLoss").addValueEventListener(object : ValueEventListener{
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val defaultData = listOf(
+                    PieEntry(33f, "Sell"),
+                    PieEntry(33f, "Buy"),
+                    PieEntry(34f, "Loss")
+                )
+
+                if (snapshot.exists()) {
+                    val data = snapshot.getValue(profit_loss::class.java)
+                    val profitLoss = data?.let { calculateProfitLoss(it) }
+
+                    if (profitLoss != null) {
+                        val sellingPrice = String.format("%.1f", data.sellingPrice).toFloat()
+                        val costPrice = String.format("%.1f", data.costPrice).toFloat()
+                        val profitOrLossValue = String.format("%.1f", profitLoss).toFloat()
+
+                        val profitOrLoss = if (data.costPrice < data.sellingPrice) "Profit" else "Loss"
+                        val dataEntries = listOf(
+                            PieEntry(sellingPrice, "Sell"),
+                            PieEntry(costPrice, "Buy"),
+                            PieEntry(profitOrLossValue, profitOrLoss)
+                        )
+                        setUpPieChart(dataEntries)
+                        return
+                    }
+                }
+                setUpPieChart(defaultData)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.d("HomeFragment profit loss", error.message)
+            }
+        })
+
+    }
+    private fun calculateProfitLoss(data:profit_loss):Double{
+        return kotlin.math.abs(data.costPrice - data.sellingPrice)
     }
     private fun fetchStockForBarChart(){
         Log.d("FetchStockForBarChart", "snapshot1")
