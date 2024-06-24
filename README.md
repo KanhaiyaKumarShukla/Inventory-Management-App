@@ -1,6 +1,6 @@
 
 # Inventory Management System
-Welcome to the Inventory Management System! This project is designed to help admins efficiently manage their products, categories, and inventory levels. With real-time updates, intuitive UI, and comprehensive analytics, managing inventory has never been easier.
+Welcome to the Inventory Management System! This project is designed to help admins efficiently manage their products, categories, and inventory levels. With real-time updates, intuitive UI, and comprehensive analytics, managing inventory has been easier.
 
 # Features
 1. Real-Time Data Management: Using Firebase Realtime Database for instant updates on inventory changes.
